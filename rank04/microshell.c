@@ -6,7 +6,7 @@
 /*   By: znichola <znichola@student.42lausanne.ch>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
 /*   Created: 2023/05/18 13:24:28 by znichola          #+#    #+#             */
-/*   Updated: 2023/05/18 14:26:35 by znichola         ###   ########.fr       */
+/*   Updated: 2023/05/24 23:45:56 by znichola         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -89,7 +89,7 @@ void cmd(int ac, char **av, char **env, int prev, int *fd_prev)
 			err(FATAL, NULL);
 			exit(1);
 		}
-		else if (pid == 0)
+		else if (pid == 0) //child process
 		{
 			if (prev && dup2(fd_prev[0], 0) < 0)
 				exit(-1);
@@ -145,9 +145,8 @@ int main(int ac, char **av, char **env)
 	{
 		if pipe
 		if cd
-		elif command
 		elif fork
-		elif pid == 0 // parent process!
+		elif pid == 0 // child process!
 			if prev make newone
 			if next make newone
 			if execve
@@ -160,4 +159,31 @@ int main(int ac, char **av, char **env)
 	while (av[i])
 		i++;
 	cmd (ac-1-i, av+1+i, env, next, fd_next);
+
+
+	put str
+	put err
+	is pipe
+	ft cd
+	cmd
+
+	cmd : ac av env prev fd_prev
+
+	if : ac < 2 -> return
+	if : *av
+		if : pipe
+		if : cd
+		else if : fork
+		else if : pid == 0 				// child
+			if : prev && dup2 fd_prev 0
+			if : next && dup2 fd_next 1
+			if : execve *av av env
+		else 							// parent
+			waitpid : pid exit_status 0
+			if : prev
+			if : next
+
+	while : av[i]
+		i++
+	cmd ac-1-i av+1+i env next fd_next
 */
