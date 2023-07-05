@@ -6,6 +6,7 @@
 
 #include "ATarget.hpp"
 #include "ASpell.hpp"
+#include "SpellBook.hpp"
 
 using std::string;
 using std::cout;
@@ -16,7 +17,7 @@ class Warlock
 	private:
 	string _name;
 	string _title;
-	std::map<string, ASpell *> _book;
+	SpellBook _book;
 
 	Warlock();
 	Warlock(const Warlock &o);
@@ -39,21 +40,19 @@ class Warlock
 
 	void learnSpell(ASpell * spell)
 	{
-		_book[spell->getName()] = spell->clone();
+		_book.learnSpell(spell);
 	}
 
 	void forgetSpell(const string &name)
 	{
-		if (_book.find(name) == _book.end())
-			return ;
-		delete _book[name];
-		_book.erase(name);
+		_book.forgetSpell(name);
 	}
 
 	void launchSpell(const string &name, const ATarget &target)
 	{
-		if (_book.find(name) == _book.end())
+		ASpell * s = _book.createSpell(name);
+		if (s == NULL)
 			return ;
-		_book[name]->launch(target);
+		s->launch(target);
 	}
 };
