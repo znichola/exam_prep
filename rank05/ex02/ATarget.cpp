@@ -1,12 +1,12 @@
 /* ************************************************************************** */
 /*                                                                            */
 /*                                                        :::      ::::::::   */
-/*   ASpell.cpp                                         :+:      :+:    :+:   */
+/*   ATarget.cpp                                        :+:      :+:    :+:   */
 /*                                                    +:+ +:+         +:+     */
 /*   By: znichola <znichola@student.42lausanne.ch>  +#+  +:+       +#+        */
 /*                                                +#+#+#+#+#+   +#+           */
-/*   Created: 2023/07/05 08:59:45 by znichola          #+#    #+#             */
-/*   Updated: 2023/07/05 12:02:10 by znichola         ###   ########.fr       */
+/*   Created: 2023/07/05 09:27:27 by znichola          #+#    #+#             */
+/*   Updated: 2023/07/05 11:04:52 by znichola         ###   ########.fr       */
 /*                                                                            */
 /* ************************************************************************** */
 
@@ -16,27 +16,28 @@
 #include "Fwoosh.hpp"
 #include "Warlock.hpp"
 
-ASpell::ASpell() {}
+#include <ostream>
 
-ASpell::ASpell(const ASpell &other) :
-	_name(other._name),
-	_effects(other._effects)
+ATarget::ATarget() {}
+ATarget::ATarget(const ATarget &other) :
+	_type(other._type)
 	{}
-ASpell::~ASpell() {}
+ATarget::~ATarget() {}
 
-ASpell::ASpell(const std::string &name, const std::string &effects) :
-	_name(name),
-	_effects(effects)
+ATarget::ATarget(const std::string &type) :
+	_type(type)
 	{}
 
-ASpell &ASpell::operator=(const ASpell &other)
+ATarget &ATarget::operator=(const ATarget &other)
 {
-	_name = other._name;
-	_effects = other._effects;
+	_type = other._type;
 	return *this;
 }
 
-const std::string &ASpell::getName() const { return _name; }
-const std::string &ASpell::getEffects() const { return _effects; }
 
-void ASpell::launch(const ATarget &target) const { target.getHitBySpell(*this); }
+const std::string &ATarget::getType() const { return _type; }
+
+void ATarget::getHitBySpell(const ASpell &spell) const
+{
+	std::cout << _type << " had been " << spell.getEffects() << "!" << std::endl;
+}
