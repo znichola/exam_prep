@@ -5,8 +5,8 @@
 class Fireball: public ASpell
 {
 	public:
-	Fireball();
-	~Fireball();
+	Fireball() : ASpell("Fireball", "burnt to a crisp") {}
+	~Fireball() {}
 
-	ASpell * clone() const;
+	ASpell * clone() const { return new Fireball(); }
 };

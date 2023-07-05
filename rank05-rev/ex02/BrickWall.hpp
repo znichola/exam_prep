@@ -5,8 +5,8 @@
 class BrickWall : public ATarget
 {
 	public:
-	BrickWall();
-	~BrickWall();
+	BrickWall() : ATarget("Inconspicuous Red-brick Wall") {}
+	~BrickWall() {}
 
-	virtual ATarget * clone() const;
+	ATarget * clone() const { return new BrickWall(); }
 };

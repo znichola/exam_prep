@@ -5,8 +5,8 @@
 class Fwoosh: public ASpell
 {
 	public:
-	Fwoosh();
-	~Fwoosh();
+	Fwoosh() : ASpell("Fwoosh", "fwooshed") {}
+	~Fwoosh() {}
 
-	ASpell * clone() const;
+	ASpell * clone() const { return new Fwoosh(); }
 };

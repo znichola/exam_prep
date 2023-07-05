@@ -5,8 +5,8 @@
 class Polymorph: public ASpell
 {
 	public:
-	Polymorph();
-	~Polymorph();
+	Polymorph() : ASpell("Polymorph", "turned into critter") {}
+	~Polymorph() {}
 
-	ASpell * clone() const;
+	ASpell * clone() const { return new Polymorph(); }
 };
