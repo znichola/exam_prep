@@ -54,5 +54,6 @@ class Warlock
 		if (s == NULL)
 			return ;
 		s->launch(target);
+		delete s;
 	}
 };
