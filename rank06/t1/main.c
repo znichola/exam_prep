@@ -24,7 +24,7 @@ void abort()
 
 int init_socket(int port)
 {
-	int sockfd, connfd, len;
+	int sockfd;
 	struct sockaddr_in servaddr; 
 
 	// socket create and verification 
@@ -50,6 +50,10 @@ int init_socket(int port)
 	return sockfd;
 }
 
+// int server_max = 0;
+// int cli[FD_SETSIZE];
+
+
 
 int main(int ac, char **av)
 {
@@ -59,6 +63,20 @@ int main(int ac, char **av)
 	int cli[FD_SETSIZE];
 	int cli_n = 0;
 	char msg[4096 + 1];
+	char buf[4096 + 200];
+
+	void broadcast(int ignore)
+	{
+		printf("startring broadcast: \"%s\"\n", buf);
+		for (int fd = 0; fd < server_max; fd++)
+		{
+			if (fd != ignore && cli[fd] != -1 && FD_ISSET(fd, &write_fds))
+			{
+				printf("to: %d\n", fd);
+				send(fd, buf, strlen(buf), 0);
+			}
+		}
+	}
 
 	if (ac != 2)
 	{
@@ -94,7 +112,9 @@ int main(int ac, char **av)
 					cli[connfd] = cli_n++;
 					FD_SET(connfd, &master_fds);
 					server_max = (connfd + 1) >= server_max ? connfd + 1 : server_max;
-					printf("Client %d at fd %d connected\n", cli[connfd], connfd);
+					sprintf(buf, "server: client %d just arrived\n", cli[connfd]);
+					broadcast(connfd);
+					bzero(buf, sizeof(buf));
 				}
 				else
 				{
@@ -103,15 +123,19 @@ int main(int ac, char **av)
 					// printf("I got len: %d and msg: %s\n", res, msg);
 					if (res <= 0)
 					{
-						printf("Client %d at fd %d left\n", cli[fd], fd);
-						cli[fd] = -1;
 						close(fd);
 						FD_CLR(fd, &master_fds);
+						sprintf(buf, "server: client %d just left\n", cli[fd]);
+						broadcast(fd);
+						bzero(buf, sizeof(buf));
+						cli[fd] = -1;
 					}
 					else
 					{
 						msg[res] = '\0';
-						printf("Client %d at fd %d sent: \"%s\"\n", cli[fd], fd, msg);
+						sprintf(buf, "client %d: %s", cli[fd], msg);
+						broadcast(fd);
+						bzero(buf, sizeof(buf));
 					}
 				}
 				if (--set_len <= 0)
