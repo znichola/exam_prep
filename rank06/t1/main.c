@@ -50,21 +50,17 @@ int init_socket(int port)
 	return sockfd;
 }
 
-// int server_max = 0;
-// int cli[FD_SETSIZE];
 
-
-
-int main(int ac, char **av)
-{
 	fd_set write_fds, read_fds, master_fds;
 	int server_fd = 0;
 	int server_max = 0;
 	int cli[FD_SETSIZE];
 	int cli_n = 0;
-	char msg[4096 + 1];
-	char buf[4096 + 200];
+	// char msg[4096 + 1];
+	// char buf[4096 + 200];
 
+	char msg[200000];
+	char buf[200000];
 	void broadcast(int ignore)
 	{
 		printf("startring broadcast: \"%s\"\n", buf);
@@ -77,6 +73,9 @@ int main(int ac, char **av)
 			}
 		}
 	}
+
+int main(int ac, char **av)
+{
 
 	if (ac != 2)
 	{
@@ -132,10 +131,32 @@ int main(int ac, char **av)
 					}
 					else
 					{
-						msg[res] = '\0';
-						sprintf(buf, "client %d: %s", cli[fd], msg);
-						broadcast(fd);
-						bzero(buf, sizeof(buf));
+						int i = 0;
+						int j = 0;
+						char line[150000];
+
+						while (msg[i])
+						{
+							line[j] = msg[i];
+							if (msg[i] == '\n')
+							{
+								bzero(&buf, sizeof(buf));
+								sprintf(buf, "client %d: %s", cli[fd], line);
+								broadcast(fd);
+								bzero(&line, sizeof(line));
+								j = 0;
+							}
+							else
+								j++;
+							i++;
+						}
+						bzero(&buf, sizeof(buf));
+						bzero(&msg, sizeof(msg));
+
+						// msg[res] = '\0';
+						// sprintf(buf, "client %d: %s", cli[fd], msg);
+						// broadcast(fd);
+						// bzero(buf, sizeof(buf));
 					}
 				}
 				if (--set_len <= 0)
