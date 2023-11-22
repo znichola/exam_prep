@@ -13,15 +13,6 @@ void abort()
 	exit(1);
 }
 
-// int max_socket()
-// {
-// 	int cur = sockfd;
-// 	for (int i = 0; i < FD_SETSIZE; i++)
-// 		if (cli[i] > cur)
-// 			cur = cli[i];
-// 	return cur + 1;
-// }
-
 int init_socket(int port)
 {
 	int sockfd;
@@ -50,18 +41,17 @@ int init_socket(int port)
 	return sockfd;
 }
 
-
 	fd_set write_fds, read_fds, master_fds;
 	int server_fd = 0;
 	int server_max = 0;
 	int cli[FD_SETSIZE];
 	int cli_n = 0;
-	// char msg[4096 + 1];
-	// char buf[4096 + 200];
 
-	char msg[200000];
-	char buf[200000];
-	void broadcast(int ignore)
+	char *mbuf;
+	char buf[128];
+	char rbuf[4096];
+
+	void broadcast(int ignore, char *m)
 	{
 		printf("startring broadcast: \"%s\"\n", buf);
 		for (int fd = 0; fd < server_max; fd++)
@@ -70,9 +60,17 @@ int init_socket(int port)
 			{
 				printf("to: %d\n", fd);
 				send(fd, buf, strlen(buf), 0);
+				if (m)
+				{
+					printf("m: <%s>\n", m);
+					send(fd, m, strlen(m), 0);
+				}
 			}
 		}
 	}
+
+int extract_message(char **buf, char **msg);
+char *str_join(char *buf, char *add);
 
 int main(int ac, char **av)
 {
@@ -88,18 +86,17 @@ int main(int ac, char **av)
 	FD_ZERO(&master_fds);
 	FD_SET(server_fd, &master_fds);
 	memset(cli, -1, sizeof(cli));
+	bzero(buf, sizeof(buf));
 
 	while(1)
 	{
 		write_fds = read_fds = master_fds;
-		// printf("max %d\n", server_max);
 		int set_len = select(server_max, &read_fds, &write_fds, 0, 0);
 		if (set_len < 0)
 		{
 			perror("here");
 			abort();
 		}
-		// printf("set len: %d\n", set_len);
 		for (int fd = 0; fd < server_max; fd++)
 		{
 			if (FD_ISSET(fd, &read_fds)) {
@@ -111,52 +108,34 @@ int main(int ac, char **av)
 					cli[connfd] = cli_n++;
 					FD_SET(connfd, &master_fds);
 					server_max = (connfd + 1) >= server_max ? connfd + 1 : server_max;
-					sprintf(buf, "server: client %d just arrived\n", cli[connfd]);
-					broadcast(connfd);
 					bzero(buf, sizeof(buf));
+					sprintf(buf, "server: client %d just arrived\n", cli[connfd]);
+					broadcast(connfd, NULL);
 				}
 				else
 				{
-					bzero(msg, sizeof(msg));
-					int res = recv(fd, msg, sizeof(msg), 0);
-					// printf("I got len: %d and msg: %s\n", res, msg);
+					bzero(rbuf, sizeof(buf));
+					int res = recv(fd, rbuf, sizeof(rbuf) - 1, 0);
 					if (res <= 0)
 					{
 						close(fd);
 						FD_CLR(fd, &master_fds);
-						sprintf(buf, "server: client %d just left\n", cli[fd]);
-						broadcast(fd);
 						bzero(buf, sizeof(buf));
+						sprintf(buf, "server: client %d just left\n", cli[fd]);
+						broadcast(fd, NULL);
 						cli[fd] = -1;
 					}
 					else
 					{
-						int i = 0;
-						int j = 0;
-						char line[150000];
-
-						while (msg[i])
+						mbuf = str_join(mbuf, rbuf);
+						char *msg = NULL;
+						while(extract_message(&mbuf, &msg))
 						{
-							line[j] = msg[i];
-							if (msg[i] == '\n')
-							{
-								bzero(&buf, sizeof(buf));
-								sprintf(buf, "client %d: %s", cli[fd], line);
-								broadcast(fd);
-								bzero(&line, sizeof(line));
-								j = 0;
-							}
-							else
-								j++;
-							i++;
+							bzero(buf, sizeof(buf));
+							sprintf(buf, "client %d: ", cli[fd]);
+							broadcast(fd, msg);
+							free(msg);
 						}
-						bzero(&buf, sizeof(buf));
-						bzero(&msg, sizeof(msg));
-
-						// msg[res] = '\0';
-						// sprintf(buf, "client %d: %s", cli[fd], msg);
-						// broadcast(fd);
-						// bzero(buf, sizeof(buf));
 					}
 				}
 				if (--set_len <= 0)
@@ -164,4 +143,51 @@ int main(int ac, char **av)
 			}
 		}
 	}
+}
+
+int extract_message(char **buf, char **msg)
+{
+	char	*newbuf;
+	int	i;
+
+	*msg = 0;
+	if (*buf == 0)
+		return (0);
+	i = 0;
+	while ((*buf)[i])
+	{
+		if ((*buf)[i] == '\n')
+		{
+			newbuf = calloc(1, sizeof(*newbuf) * (strlen(*buf + i + 1) + 1));
+			if (newbuf == 0)
+				return (-1);
+			strcpy(newbuf, *buf + i + 1);
+			*msg = *buf;
+			(*msg)[i + 1] = 0;
+			*buf = newbuf;
+			return (1);
+		}
+		i++;
+	}
+	return (0);
+}
+
+char *str_join(char *buf, char *add)
+{
+	char	*newbuf;
+	int		len;
+
+	if (buf == 0)
+		len = 0;
+	else
+		len = strlen(buf);
+	newbuf = malloc(sizeof(*newbuf) * (len + strlen(add) + 1));
+	if (newbuf == 0)
+		return (0);
+	newbuf[0] = 0;
+	if (buf != 0)
+		strcat(newbuf, buf);
+	free(buf);
+	strcat(newbuf, add);
+	return (newbuf);
 }
