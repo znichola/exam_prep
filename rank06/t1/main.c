@@ -132,10 +132,8 @@ int main(int ac, char **av)
 						sprintf(buf, "server: client %d just left\n", cli[fd].id);
 						broadcast(fd, NULL);
 						cli[fd].id = -1;
-						// if (cli[fd].msg && strlen(cli[fd].msg) > 1)
-						// 	cli[fd].msg[0] = '\0';
-						// free(cli[fd].msg);
-						memset(cli[fd].msg, 0, strlen(cli[fd].msg));
+						free(cli[fd].msg);
+						cli[fd].msg = NULL;
 					}
 					else
 					{
@@ -172,7 +170,7 @@ int extract_message(char **buf, char **msg)
 		{
 			newbuf = calloc(1, sizeof(*newbuf) * (strlen(*buf + i + 1) + 1));
 			if (newbuf == 0)
-				return (-1);
+				abort();
 			strcpy(newbuf, *buf + i + 1);
 			*msg = *buf;
 			(*msg)[i + 1] = 0;
@@ -195,7 +193,7 @@ char *str_join(char *buf, char *add)
 		len = strlen(buf);
 	newbuf = malloc(sizeof(*newbuf) * (len + strlen(add) + 1));
 	if (newbuf == 0)
-		return (0);
+		abort();
 	newbuf[0] = 0;
 	if (buf != 0)
 		strcat(newbuf, buf);
