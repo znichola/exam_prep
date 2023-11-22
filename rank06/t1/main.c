@@ -41,33 +41,37 @@ int init_socket(int port)
 	return sockfd;
 }
 
-	fd_set write_fds, read_fds, master_fds;
-	int server_fd = 0;
-	int server_max = 0;
-	int cli[FD_SETSIZE];
-	int cli_n = 0;
+struct client {
+	int id;
+	char *msg;
+};
 
-	char *mbuf;
-	char buf[128];
-	char rbuf[4096];
+fd_set write_fds, read_fds, master_fds;
+int server_fd = 0;
+int server_max = 0;
+struct client cli[FD_SETSIZE];
+int cli_n = 0;
 
-	void broadcast(int ignore, char *m)
+char buf[128];
+char rbuf[4096];
+
+void broadcast(int ignore, char *m)
+{
+	printf("startring broadcast: \"%s\"\n", buf);
+	for (int fd = 0; fd < server_max; fd++)
 	{
-		printf("startring broadcast: \"%s\"\n", buf);
-		for (int fd = 0; fd < server_max; fd++)
+		if (fd != ignore && cli[fd].id != -1 && FD_ISSET(fd, &write_fds))
 		{
-			if (fd != ignore && cli[fd] != -1 && FD_ISSET(fd, &write_fds))
+			printf("to: %d\n", fd);
+			send(fd, buf, strlen(buf), 0);
+			if (m)
 			{
-				printf("to: %d\n", fd);
-				send(fd, buf, strlen(buf), 0);
-				if (m)
-				{
-					printf("m: <%s>\n", m);
-					send(fd, m, strlen(m), 0);
-				}
+				printf("m: <%s>\n", m);
+				send(fd, m, strlen(m), 0);
 			}
 		}
 	}
+}
 
 int extract_message(char **buf, char **msg);
 char *str_join(char *buf, char *add);
@@ -85,8 +89,12 @@ int main(int ac, char **av)
 	server_max = server_fd + 1;
 	FD_ZERO(&master_fds);
 	FD_SET(server_fd, &master_fds);
-	memset(cli, -1, sizeof(cli));
 	bzero(buf, sizeof(buf));
+	for (int i = 0; i < FD_SETSIZE; i++)
+	{
+		cli[i].id = -1;
+		cli[1].msg = NULL;
+	}
 
 	while(1)
 	{
@@ -105,11 +113,11 @@ int main(int ac, char **av)
 					int connfd = accept(fd, 0, 0);
 					if (connfd < 0)
 						abort();
-					cli[connfd] = cli_n++;
+					cli[connfd].id = cli_n++;
 					FD_SET(connfd, &master_fds);
 					server_max = (connfd + 1) >= server_max ? connfd + 1 : server_max;
 					bzero(buf, sizeof(buf));
-					sprintf(buf, "server: client %d just arrived\n", cli[connfd]);
+					sprintf(buf, "server: client %d just arrived\n", cli[connfd].id);
 					broadcast(connfd, NULL);
 				}
 				else
@@ -121,18 +129,22 @@ int main(int ac, char **av)
 						close(fd);
 						FD_CLR(fd, &master_fds);
 						bzero(buf, sizeof(buf));
-						sprintf(buf, "server: client %d just left\n", cli[fd]);
+						sprintf(buf, "server: client %d just left\n", cli[fd].id);
 						broadcast(fd, NULL);
-						cli[fd] = -1;
+						cli[fd].id = -1;
+						// if (cli[fd].msg && strlen(cli[fd].msg) > 1)
+						// 	cli[fd].msg[0] = '\0';
+						// free(cli[fd].msg);
+						memset(cli[fd].msg, 0, strlen(cli[fd].msg));
 					}
 					else
 					{
-						mbuf = str_join(mbuf, rbuf);
+						cli[fd].msg = str_join(cli[fd].msg, rbuf);
 						char *msg = NULL;
-						while(extract_message(&mbuf, &msg))
+						while(extract_message(&cli[fd].msg, &msg))
 						{
 							bzero(buf, sizeof(buf));
-							sprintf(buf, "client %d: ", cli[fd]);
+							sprintf(buf, "client %d: ", cli[fd].id);
 							broadcast(fd, msg);
 							free(msg);
 						}
